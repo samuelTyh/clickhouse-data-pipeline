@@ -126,4 +126,4 @@ def setup():
     print("\nEnvironment is ready! Running stats:")
     stats()
     print("\nAccess PostgreSQL: localhost:5432 (user: postgres, password: postgres)")
-    print("Access ClickHouse: localhost:8123 (HTTP) or localhost:9000 (TCP)")
+    print("Access ClickHouse: localhost:8124 (HTTP) or localhost:9001 (TCP)")
