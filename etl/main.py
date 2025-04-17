@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import logging
+from datetime import datetime
 
 import psycopg
 import clickhouse_driver
@@ -61,7 +62,11 @@ class AdtechETL:
     def __init__(self):
         self.pg_conn = None
         self.ch_client = None
-
+        self.last_sync = {
+            'advertiser': datetime.min,
+            'campaign': datetime.min,
+        }
+    
     def connect(self):
         """Establish database connections"""
         try:
@@ -83,7 +88,99 @@ class AdtechETL:
         except Exception as e:
             logger.error(f"Failed to connect to databases: {e}")
             return False
-        
+    
+    def sync_advertisers(self):
+        """Sync advertisers from PostgreSQL to ClickHouse"""
+        with self.pg_conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, name, updated_at, created_at 
+                FROM advertiser
+                WHERE updated_at > %s OR created_at > %s
+            """, (self.last_sync['advertiser'], self.last_sync['advertiser']))
+            
+            rows = cur.fetchall()
+            if not rows:
+                logger.info("No new advertisers to sync")
+                return 0
+            
+            # Transform data
+            data = []
+            latest_update = self.last_sync['advertiser']
+            for adv_id, name, updated_at, created_at in rows:
+                data.append((
+                    adv_id,
+                    name,
+                    updated_at or datetime.now(),
+                    created_at or datetime.now()
+                ))
+                if updated_at and updated_at > latest_update:
+                    latest_update = updated_at
+                if created_at and created_at > latest_update:
+                    latest_update = created_at
+            
+            # Load to ClickHouse
+            self.ch_client.execute(
+                """
+                INSERT INTO analytics.dim_advertiser
+                (advertiser_id, name, updated_at, created_at)
+                VALUES
+                """,
+                data
+            )
+            
+            self.last_sync['advertiser'] = latest_update
+            logger.info(f"Synced {len(data)} advertisers")
+            return len(data)
+
+    def sync_campaigns(self):
+        """Sync campaigns from PostgreSQL to ClickHouse"""
+        with self.pg_conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, name, bid, budget, start_date, end_date, advertiser_id, updated_at, created_at
+                FROM campaign
+                WHERE updated_at > %s OR created_at > %s
+            """, (self.last_sync['campaign'], self.last_sync['campaign']))
+            
+            rows = cur.fetchall()
+            if not rows:
+                logger.info("No new campaigns to sync")
+                return 0
+            
+            # Transform data
+            data = []
+            latest_update = self.last_sync['campaign']
+            for row in rows:
+                campaign_id, name, bid, budget, start_date, end_date, advertiser_id, updated_at, created_at = row
+                data.append((
+                    campaign_id,
+                    name,
+                    float(bid) if bid else 0.0,
+                    float(budget) if budget else 0.0,
+                    start_date or datetime.now().date(),
+                    end_date or datetime.now().date(),
+                    advertiser_id,
+                    updated_at or datetime.now(),
+                    created_at or datetime.now()
+                ))
+                if updated_at and updated_at > latest_update:
+                    latest_update = updated_at
+                if created_at and created_at > latest_update:
+                    latest_update = created_at
+            
+            # Load to ClickHouse
+            self.ch_client.execute(
+                """
+                INSERT INTO analytics.dim_campaign
+                (campaign_id, name, bid, budget, start_date, end_date, advertiser_id, updated_at, created_at)
+                VALUES
+                """,
+                data
+            )
+            
+            self.last_sync['campaign'] = latest_update
+            logger.info(f"Synced {len(data)} campaigns")
+            return len(data)
+
     def run_sync(self):
         """Run a complete ETL cycle"""
         try:
@@ -91,6 +188,10 @@ class AdtechETL:
             
             if not self.connect():
                 return False
+            
+            # Sync dimension tables
+            self.sync_advertisers()
+            self.sync_campaigns()
             
             logger.info("ETL sync cycle completed successfully")
             return True
@@ -104,6 +205,7 @@ class AdtechETL:
 
 
 def main():
+    """Main entry point"""
     logger.info("Starting AdTech ETL service")
     setup_clickhouse_schema()
     etl = AdtechETL()
