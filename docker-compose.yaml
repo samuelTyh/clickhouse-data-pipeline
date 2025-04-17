@@ -82,6 +82,28 @@ services:
       flyway:
         condition: service_completed_successfully
 
+  # -------------------------------------
+  # ETL Service
+  # -------------------------------------
+  etl:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile.etl
+    container_name: adtech_etl
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      clickhouse:
+        condition: service_healthy
+        restart: true
+      seeder:
+        condition: service_completed_successfully
+    env_file: .env
+    volumes:
+      - ./etl:/app
+
 volumes:
   postgres_data:
   clickhouse_data:
