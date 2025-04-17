@@ -1,124 +1,232 @@
-# Data Engineering Task: AdTech Data Pipeline
+# AdTech Data Pipeline
 
 ## Overview
 
-You are tasked with developing a data pipeline for an advertising platform. 
+This project implements a data pipeline for an advertising platform that extracts data from PostgreSQL (operational database), transforms it, and loads it into ClickHouse (analytical database) for efficient reporting and KPI analysis.
 
-The source data is stored in PostgreSQL (operational database) and needs to be transformed and loaded into ClickHouse (analytical database) for efficient reporting and KPI analysis.
+## Features
 
-## Task Requirements
+- **Incremental ETL**: Efficiently syncs only new or modified data
+- **Optimized Analytics Schema**: ClickHouse schema designed for high-performance analytical queries
+- **Real-time KPIs**: Pre-calculated metrics using materialized views
+- **Containerized Architecture**: Easy deployment with Docker
+- **Configurable**: Customizable sync intervals and parameters
 
-Your challenge is to:
 
-1. **Design and implement a ClickHouse schema** optimized for analytical queries
-2. **Create a data pipeline** to move data from PostgreSQL to ClickHouse
-   - You can use any approach.
-   - Your solution should be reproducible and well-documented
-3. **Develop queries** to calculate key advertising KPIs
-4. **Document your approach** and any assumptions made
+## Project Structure
 
-## Prerequisites
+```
+├── docker-compose.yaml   # Docker services configuration
+├── etl/                  # ETL pipeline code
+│   ├── clickhouse_schema/
+│   │   ├── init.sql      # ClickHouse schema definition
+│   │   └── kpi_views.sql # Materialized views for KPIs
+│   ├── core/             # Core ETL components
+│   │   ├── config.py     # Configuration management
+│   │   ├── db.py         # Database connectors
+│   │   ├── pipeline.py   # ETL pipeline implementation
+│   │   └── schema.py     # Schema management
+│   ├── logging_config.py # Logging setup
+│   ├── main.py           # Main service entry point
+│   └── requirements.txt  # Python dependencies
+├── seeder/               # Data generation utilities
+│   ├── main.py           # Seeder CLI
+│   ├── migrations/       # Database migrations
+│   │   └── V1__create_schema.sql
+│   └── seed.py           # Test data generation
+└── README.md             # Project documentation
+```
+
+### Components
+
+1. **Source Database (PostgreSQL)**
+   - Contains operational data for the advertising platform
+   - Tables: advertiser, campaign, impressions, clicks
+
+2. **ETL Pipeline**
+   - Extracts data from PostgreSQL using incremental updates
+   - Transforms data for analytical use
+   - Loads data into ClickHouse dimensional model
+
+3. **Analytical Database (ClickHouse)**
+   - Dimension tables: dim_advertiser, dim_campaign
+   - Fact tables: fact_impressions, fact_clicks
+   - Materialized views for KPI calculations
+
+## Data Model
+
+### Target Schema (ClickHouse)
+
+```
+dim_advertiser
+├── advertiser_id
+├── name
+├── updated_at
+└── created_at
+
+dim_campaign
+├── campaign_id
+├── name
+├── bid
+├── budget
+├── start_date
+├── end_date
+├── advertiser_id
+├── updated_at
+└── created_at
+
+fact_impressions
+├── impression_id
+├── campaign_id
+├── event_date
+├── event_time
+└── created_at
+
+fact_clicks
+├── click_id
+├── campaign_id
+├── event_date
+├── event_time
+└── created_at
+```
+
+## Key KPIs
+
+The following KPIs are implemented as materialized views in ClickHouse:
+
+1. **Campaign CTR (Click-Through Rate)**
+   - Measures the ratio of clicks to impressions for each campaign
+   - `mv_campaign_ctr`
+
+2. **Daily Performance Metrics**
+   - Tracks impressions, clicks, and CTR by date
+   - `mv_daily_performance`
+
+3. **Campaign Daily Performance**
+   - Provides campaign performance metrics broken down by date
+   - `mv_campaign_daily_performance`
+
+4. **Campaign Cost Efficiency**
+   - Calculates cost per click based on bid amounts and impressions
+   - `mv_campaign_efficiency`
+
+5. **Advertiser Performance Overview**
+   - Aggregates performance metrics at the advertiser level
+   - `mv_advertiser_performance`
+
+## Setup & Usage
+
+### Prerequisites
 
 * [uv](https://docs.astral.sh/uv/getting-started/installation/)
 * [docker](https://docs.docker.com/engine/install/)
 * [compose](https://docs.docker.com/compose/install/)
 
-## Setup & Environment
+### Installation
 
-This repository provides a complete environment to get started:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/samuelTyh/clickhouse-data-pipeline
+   cd clickhouse-data-pipeline
+   ```
 
-```bash
-# Install dependencies
-uv sync
+2. Install dependencies:
+   ```bash
+   uv sync
+   ```
 
-# Start all services
-docker-compose up -d
+3. Start all services to create seed data, kick-off initialization and start ETL scheduling:
+   ```bash
+   docker-compose up -d
+   ```
 
-# Wait a bit for services to initialize, then seed data
-uv run python main.py batch
-```
 
-## Data Model
+### Usage
 
-The source PostgreSQL database has the following schema:
+#### Checking ETL Status
 
-- **advertiser**: Information about companies running ad campaigns
-- **campaign**: Ad campaigns configured with bid amounts and budgets  
-- **impressions**: Records of ads being displayed
-- **clicks**: Records of users clicking on ads
-
-Detailed schema information can be found in `migrations/V1__create_schema.sql`.
-
-## Data Generation
-
-A data generator is provided to populate the source PostgreSQL database:
+The ETL service logs can be viewed with:
 
 ```bash
-# Generate a complete batch of test data
-uv run python main.py batch --advertisers 5 --campaigns 3 --impressions 1000 --ctr 0.08
-# Add a single advertiser
-uv run python main.py advertisers --count 1
-# Add campaigns for an advertiser
-uv run python main.py campaigns --advertiser-id 1 --count 2
-# Add impressions for a campaign
-uv run python main.py impressions --campaign-id 1 --count 500
-# Add clicks for a campaign (based on existing impressions)
-uv run python main.py clicks --campaign-id 1 --ratio 0.12
-# View current data statistics
-uv run python main.py stats
-# Reset all data (use with caution)
-uv run python main.py reset
+docker logs adtech_etl
 ```
 
-## Deliverables
+#### Accessing Databases
 
-Please provide the following:
+- **PostgreSQL**: Available at `localhost:6543` (credentials in .env.tmpl)
+- **ClickHouse**: HTTP interface at `localhost:8124`, native protocol at `localhost:9001`
 
-1. **ClickHouse Schema**: SQL scripts to create your analytical tables
-2. **Data Pipeline**: Code and configuration to move data from PostgreSQL to ClickHouse
-3. **KPI Queries**: SQL queries to calculate the following metrics:
-   - Click-Through Rate (CTR) by campaign
-   - Daily impressions and clicks
-   - Anything else you might find itneresting
-4. **Documentation**: A README explaining your design decisions and how to run your solution
+## Running Queries
 
-## Evaluation Criteria
+### Example ClickHouse Queries
 
-Your solution will be evaluated based on:
+#### Campaign Performance
 
-- **Data modeling**: Appropriate schema design for analytical queries in ClickHouse
-- **Pipeline architecture**: Choice of tools, approach to data synchronization, and handling of updates
-- **Implementation quality**: Reliability, error handling, monitoring, and efficiency
-- **Query performance**: Efficient and accurate KPI calculations in ClickHouse
-- **Documentation**: Clear explanation of your approach, design decisions, and trade-offs
-- **Innovation**: Creative solutions to the data engineering challenges presented
+```sql
+SELECT 
+    campaign_id,
+    campaign_name,
+    advertiser_name,
+    impressions,
+    clicks,
+    ctr
+FROM analytics.mv_campaign_ctr
+ORDER BY ctr DESC;
+```
 
-## Technical Requirements
+#### Daily Performance
 
-- Your solution should be containerized or have clear setup instructions
-- If using Python code, use Python 3.12+ and include dependency information
-- The pipeline should be able to handle both initial loads and incremental updates
-- All ClickHouse SQL must be compatible with the latest ClickHouse syntax
-- Your approach should consider performance, maintainability, and error handling
+```sql
+SELECT 
+    event_date,
+    impressions,
+    clicks,
+    daily_ctr
+FROM analytics.mv_daily_performance
+ORDER BY event_date DESC;
+```
 
-## Getting Started
+#### Campaign Cost Analysis
 
-1. Clone this repository
-2. Install dependencies: `uv sync`
-3. Start Docker containers: `docker-compose up -d`
-4. Populate test data: `uv run python main.py batch`
-5. Explore the sample data:
-   - Command line: `uv run python main.py stats`
-   - Web interfaces: pgAdmin and Tabix (see Database Access section)
-6. Design your ClickHouse schema
-7. Implement your ETL pipeline
-8. Develop and test your KPI queries
-9. Document your solution
+```sql
+SELECT 
+    campaign_id,
+    campaign_name,
+    bid_amount,
+    impressions,
+    clicks,
+    cost_per_click
+FROM analytics.mv_campaign_efficiency
+ORDER BY cost_per_click ASC;
+```
 
-For local development:
-- View container status: `docker-compose ps`
-- View logs: `docker-compose logs`
-- Reset data: `uv run python main.py reset`
-- Stop services: `docker-compose down`
 
-Good luck!
+## Design Decisions
+
+### ClickHouse Schema Design
+
+1. **ReplacingMergeTree for Dimensions**
+   - Handles updates to dimension data efficiently
+   - Maintains history with timestamp versioning
+
+2. **MergeTree with Partitioning for Facts**
+   - Partitioned by month for efficient querying and data management
+   - Optimized for analytical workloads
+
+3. **Materialized Views for KPIs**
+   - Pre-calculation of common metrics
+   - Significantly faster query response times
+
+### ETL Process
+
+1. **Incremental Updates**
+   - Tracks last sync timestamps for each table
+   - Only extracts new or modified data since last sync
+
+2. **Error Handling**
+   - Comprehensive logging
+   - Graceful recovery from failures
+
+3. **Modular Design**
+   - Separation of extract, transform, and load responsibilities
+   - Easy to extend with new data sources or targets
