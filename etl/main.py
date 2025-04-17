@@ -65,6 +65,8 @@ class AdtechETL:
         self.last_sync = {
             'advertiser': datetime.min,
             'campaign': datetime.min,
+            'impressions': datetime.min,
+            'clicks': datetime.min
         }
     
     def connect(self):
@@ -181,6 +183,106 @@ class AdtechETL:
             logger.info(f"Synced {len(data)} campaigns")
             return len(data)
 
+    def sync_impressions(self):
+        """Sync impressions from PostgreSQL to ClickHouse"""
+        with self.pg_conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, campaign_id, created_at
+                FROM impressions
+                WHERE created_at > %s
+            """, (self.last_sync['impressions'],))
+            
+            rows = cur.fetchall()
+            if not rows:
+                logger.info("No new impressions to sync")
+                return 0
+            
+            # Transform data
+            data = []
+            latest_update = self.last_sync['impressions']
+            for imp_id, campaign_id, created_at in rows:
+                event_time = created_at or datetime.now()
+                event_date = event_time.date()
+                
+                data.append((
+                    imp_id,
+                    campaign_id,
+                    event_date,
+                    event_time,
+                    created_at or datetime.now()
+                ))
+                
+                if created_at and created_at > latest_update:
+                    latest_update = created_at
+            
+            # Load to ClickHouse
+            self.ch_client.execute(
+                """
+                INSERT INTO analytics.fact_impressions
+                (impression_id, campaign_id, event_date, event_time, created_at)
+                VALUES
+                """,
+                data
+            )
+            
+            self.last_sync['impressions'] = latest_update
+            logger.info(f"Synced {len(data)} impressions")
+            return len(data)
+
+    def sync_clicks(self):
+        """Sync clicks from PostgreSQL to ClickHouse"""
+        with self.pg_conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, campaign_id, created_at
+                FROM clicks
+                WHERE created_at > %s
+            """, (self.last_sync['clicks'],))
+            
+            rows = cur.fetchall()
+            if not rows:
+                logger.info("No new clicks to sync")
+                return 0
+            
+            # Transform data
+            data = []
+            latest_update = self.last_sync['clicks']
+            for click_id, campaign_id, created_at in rows:
+                event_time = created_at or datetime.now()
+                event_date = event_time.date()
+                
+                data.append((
+                    click_id,
+                    campaign_id,
+                    event_date,
+                    event_time,
+                    created_at or datetime.now()
+                ))
+                
+                if created_at and created_at > latest_update:
+                    latest_update = created_at
+            
+            # Load to ClickHouse
+            self.ch_client.execute(
+                """
+                INSERT INTO analytics.fact_clicks
+                (click_id, campaign_id, event_date, event_time, created_at)
+                VALUES
+                """,
+                data
+            )
+            
+            self.last_sync['clicks'] = latest_update
+            logger.info(f"Synced {len(data)} clicks")
+            return len(data)
+
+    def refresh_materialized_views(self):
+        """Refresh materialized views in ClickHouse"""
+        try:
+            self.ch_client.execute("OPTIMIZE TABLE analytics.mv_daily_metrics FINAL")
+            logger.info("Refreshed materialized views")
+        except Exception as e:
+            logger.error(f"Error refreshing materialized views: {e}")
+
     def run_sync(self):
         """Run a complete ETL cycle"""
         try:
@@ -192,6 +294,13 @@ class AdtechETL:
             # Sync dimension tables
             self.sync_advertisers()
             self.sync_campaigns()
+            
+            # Then sync fact tables
+            self.sync_impressions()
+            self.sync_clicks()
+            
+            # Refresh materialized views
+            self.refresh_materialized_views()
             
             logger.info("ETL sync cycle completed successfully")
             return True
