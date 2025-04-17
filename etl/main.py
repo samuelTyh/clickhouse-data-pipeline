@@ -56,6 +56,31 @@ def setup_clickhouse_schema():
         logger.error(f"Error setting up ClickHouse schema: {e}")
         raise
 
+def create_clickhouse_views():
+    """Create materialized views in ClickHouse"""
+    client = clickhouse_driver.Client(
+        host=CH_HOST,
+        port=CH_PORT,
+        user=CH_USER,
+        password=CH_PASSWORD,
+        database=CH_DB
+    )
+    
+    # Read schema from file
+    try:
+        with open('clickhouse_views.sql', 'r') as f:
+            schema_sql = f.read()
+        
+        # Execute schema statements
+        for statement in schema_sql.split(';'):
+            if statement.strip():
+                client.execute(statement)
+        
+        logger.info("ClickHouse materialized views created successfully")
+    except Exception as e:
+        logger.error(f"Error setting up ClickHouse materialized views: {e}")
+        raise
+
 
 class AdtechETL:
     
@@ -275,14 +300,6 @@ class AdtechETL:
             logger.info(f"Synced {len(data)} clicks")
             return len(data)
 
-    def refresh_materialized_views(self):
-        """Refresh materialized views in ClickHouse"""
-        try:
-            self.ch_client.execute("OPTIMIZE TABLE analytics.mv_daily_metrics FINAL")
-            logger.info("Refreshed materialized views")
-        except Exception as e:
-            logger.error(f"Error refreshing materialized views: {e}")
-
     def run_sync(self):
         """Run a complete ETL cycle"""
         try:
@@ -298,9 +315,6 @@ class AdtechETL:
             # Then sync fact tables
             self.sync_impressions()
             self.sync_clicks()
-            
-            # Refresh materialized views
-            self.refresh_materialized_views()
             
             logger.info("ETL sync cycle completed successfully")
             return True
@@ -324,7 +338,9 @@ def main():
             success = etl.run_sync()
             if not success:
                 logger.warning(f"Waiting {SYNC_INTERVAL} seconds before retry...")
-            
+            # Create ClickHouse views if not exists
+            logger.info("Creating ClickHouse views...")
+            create_clickhouse_views()
             logger.info(f"Sleeping for {SYNC_INTERVAL} seconds...")
             time.sleep(SYNC_INTERVAL)
     except KeyboardInterrupt:
