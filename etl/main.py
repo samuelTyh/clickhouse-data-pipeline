@@ -34,6 +34,12 @@ def parse_arguments():
         help='Set logging level'
     )
     
+    parser.add_argument(
+        '--force-full-sync',
+        action='store_true',
+        help='Force a full sync instead of incremental'
+    )
+    
     return parser.parse_args()
 
 
