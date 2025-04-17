@@ -3,6 +3,7 @@ import time
 import logging
 import argparse
 from typing import Optional
+from datetime import datetime
 
 from core import (
     AppConfig, PostgresConnector, ClickhouseConnector, SchemaManager, 
@@ -104,7 +105,7 @@ class AdtechETLService:
             # Ensure connections are closed properly
             self.pg_connector.close()
     
-    def run_service(self, run_once: bool = False, interval: Optional[int] = None) -> None:
+    def run_service(self, run_once: bool = False, interval: Optional[int] = None, force_full_sync: bool = False) -> None:
         """Run the ETL service continuously or once."""
         sync_interval = interval or self.config.etl.sync_interval
         
@@ -112,7 +113,13 @@ class AdtechETLService:
             self.logger.error("Service initialization failed. Exiting.")
             sys.exit(1)
         
+        if force_full_sync:
+            self.logger.info("Forcing full sync - resetting all sync timestamps")
+            for key in self.etl_pipeline.last_sync:
+                self.etl_pipeline.last_sync[key] = datetime.min
+        
         self.logger.info(f"AdTech ETL service started with sync interval: {sync_interval}s")
+        self.logger.info(f"Incremental updates {'disabled' if force_full_sync else 'enabled'}")
         
         try:
             if run_once:
@@ -161,7 +168,11 @@ def main():
     
     # Create and run service
     service = AdtechETLService()
-    service.run_service(run_once=args.run_once, interval=args.interval)
+    service.run_service(
+        run_once=args.run_once, 
+        interval=args.interval,
+        force_full_sync=args.force_full_sync
+    )
 
 
 if __name__ == "__main__":
