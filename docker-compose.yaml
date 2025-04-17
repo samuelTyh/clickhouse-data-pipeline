@@ -5,12 +5,7 @@ services:
   postgres:
     image: postgres:17
     container_name: psql_source
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_HOST_AUTH_METHOD: trust
+    env_file: .env
     ports:
       - "6543:5432"
     volumes:
@@ -40,11 +35,7 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server
     container_name: ch_analytics
-    environment:
-      CLICKHOUSE_USER: sysadmin
-      CLICKHOUSE_PASSWORD: sysadmin
-      CLICKHOUSE_DB: analytics
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    env_file: .env
     ulimits:
       nofile:
         soft: 262144
@@ -71,9 +62,47 @@ services:
         restart: true
     command: -url=jdbc:postgresql://postgres:5432/postgres -user=postgres -locations=filesystem:/flyway/sql migrate
     volumes:
-      - ./migrations/:/flyway/sql
+      - ./seeder/migrations/:/flyway/sql
     environment:
       FLYWAY_CONNECT_RETRIES: 10
+
+  # -------------------------------------
+  # Data Seeder
+  # -------------------------------------
+  seeder:
+    build:
+      context: ./seeder
+      dockerfile: Dockerfile.seeder
+    container_name: data_seeder
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      flyway:
+        condition: service_completed_successfully
+
+  # -------------------------------------
+  # ETL Service
+  # -------------------------------------
+  etl:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile.etl
+    container_name: adtech_etl
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      clickhouse:
+        condition: service_healthy
+        restart: true
+      seeder:
+        condition: service_completed_successfully
+    env_file: .env
+    volumes:
+      - ./etl:/app
 
 volumes:
   postgres_data:
