@@ -1,6 +1,6 @@
 import logging
-from db import ClickhouseConnector
-from config import ETLConfig
+from .db import ClickhouseConnector
+from .config import ETLConfig
 
 logger = logging.getLogger('adtech-etl.schema')
 

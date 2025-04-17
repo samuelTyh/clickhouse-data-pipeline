@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple, Union, Dict, Any
 import psycopg
 import clickhouse_driver
 
-from config import PostgresConfig, ClickhouseConfig
+from .config import PostgresConfig, ClickhouseConfig
 
 logger = logging.getLogger('adtech-etl.db')
 
