@@ -200,6 +200,14 @@ class ETLPipeline:
             'impressions': datetime.min,
             'clicks': datetime.min
         }
+        
+        # Tracking for sync statistics
+        self.sync_stats = {
+            'advertiser': 0,
+            'campaign': 0,
+            'impressions': 0,
+            'clicks': 0
+        }
     
     def sync_advertisers(self) -> int:
         """Sync advertisers from PostgreSQL to ClickHouse."""
@@ -326,15 +334,30 @@ class ETLPipeline:
         try:
             logger.info("Starting ETL sync cycle")
             
+            # Reset sync statistics
+            for key in self.sync_stats:
+                self.sync_stats[key] = 0
+            
             # Sync dimension tables first
-            self.sync_advertisers()
-            self.sync_campaigns()
+            self.sync_stats['advertiser'] = self.sync_advertisers()
+            self.sync_stats['campaign'] = self.sync_campaigns()
             
             # Then sync fact tables
-            self.sync_impressions() 
-            self.sync_clicks()
+            self.sync_stats['impressions'] = self.sync_impressions() 
+            self.sync_stats['clicks'] = self.sync_clicks()
             
+            # Log sync summary
             logger.info("ETL sync cycle completed successfully")
+            logger.info(f"Sync summary: "
+                       f"Advertisers: {self.sync_stats['advertiser']}, "
+                       f"Campaigns: {self.sync_stats['campaign']}, "
+                       f"Impressions: {self.sync_stats['impressions']}, "
+                       f"Clicks: {self.sync_stats['clicks']}")
+            
+            # If no updates were processed, log that too
+            if sum(self.sync_stats.values()) == 0:
+                logger.info("No new or updated records found since last sync")
+            
             return True
             
         except Exception as e:
