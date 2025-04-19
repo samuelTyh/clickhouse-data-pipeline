@@ -94,10 +94,10 @@ def mock_ch_connector(mock_ch_client):
         yield connector
 
 
+@pytest.mark.unit
 class TestPostgresConnector:
     """Tests for PostgreSQL connector."""
 
-    @pytest.mark.unit
     @patch('psycopg.connect')
     def test_connect_success(self, mock_connect, postgres_config):
         """Test successful connection to PostgreSQL."""
@@ -112,7 +112,6 @@ class TestPostgresConnector:
             autocommit=False
         )
     
-    @pytest.mark.unit
     @patch('psycopg.connect')
     def test_connect_failure(self, mock_connect, postgres_config):
         """Test failed connection to PostgreSQL."""
@@ -123,7 +122,6 @@ class TestPostgresConnector:
         
         assert result is False
     
-    @pytest.mark.unit
     @patch('psycopg.connect')
     def test_close(self, mock_connect, postgres_config):
         """Test closing PostgreSQL connection."""
@@ -138,7 +136,6 @@ class TestPostgresConnector:
         mock_conn.close.assert_called_once()
         assert connector.conn is None
     
-    @pytest.mark.unit
     @patch('psycopg.connect')
     def test_execute_query(self, mock_connect, postgres_config):
         """Test executing a query on PostgreSQL."""
@@ -160,10 +157,10 @@ class TestPostgresConnector:
         mock_cursor.execute.assert_called_once_with("SELECT * FROM test", ())
 
 
+@pytest.mark.unit
 class TestClickhouseConnector:
     """Tests for ClickHouse connector."""
 
-    @pytest.mark.unit
     @patch('clickhouse_driver.Client')
     def test_connect_success(self, mock_client, clickhouse_config):
         """Test successful connection to ClickHouse."""
@@ -182,7 +179,6 @@ class TestClickhouseConnector:
             database=clickhouse_config.database
         )
     
-    @pytest.mark.unit
     @patch('clickhouse_driver.Client')
     def test_connect_failure(self, mock_client, clickhouse_config):
         """Test failed connection to ClickHouse."""
@@ -194,7 +190,6 @@ class TestClickhouseConnector:
         
         assert result is False
     
-    @pytest.mark.unit
     def test_close(self, clickhouse_config):
         """Test closing ClickHouse connection."""
         connector = ClickhouseConnector(clickhouse_config)
@@ -204,7 +199,6 @@ class TestClickhouseConnector:
         
         assert connector.client is None
     
-    @pytest.mark.unit
     @patch('clickhouse_driver.Client')
     def test_execute_query(self, mock_client_class, clickhouse_config):
         """Test executing a query on ClickHouse."""
@@ -227,10 +221,10 @@ class TestClickhouseConnector:
         mock_client_instance.execute.assert_called_once_with("SELECT * FROM test", [])
 
 
+@pytest.mark.unit
 class TestDataExtractor:
     """Tests for DataExtractor."""
 
-    @pytest.mark.unit
     def test_extract_advertisers(self, mock_pg_connector):
         """Test extracting advertisers."""
         expected_data = [(1, 'Advertiser A', datetime.now(), datetime.now())]
@@ -244,7 +238,6 @@ class TestDataExtractor:
         assert result == expected_data
         mock_pg_connector.execute_query.assert_called_once()
     
-    @pytest.mark.unit
     def test_extract_campaigns(self, mock_pg_connector):
         """Test extracting campaigns."""
         expected_data = [(1, 'Campaign A', 1.0, 100.0, datetime.now().date(), 
@@ -259,7 +252,6 @@ class TestDataExtractor:
         assert result == expected_data
         mock_pg_connector.execute_query.assert_called_once()
     
-    @pytest.mark.unit
     def test_extract_impressions(self, mock_pg_connector):
         """Test extracting impressions."""
         expected_data = [(1, 1, datetime.now())]
@@ -273,7 +265,6 @@ class TestDataExtractor:
         assert result == expected_data
         mock_pg_connector.execute_query.assert_called_once()
     
-    @pytest.mark.unit
     def test_extract_clicks(self, mock_pg_connector):
         """Test extracting clicks."""
         expected_data = [(1, 1, datetime.now())]
@@ -288,10 +279,10 @@ class TestDataExtractor:
         mock_pg_connector.execute_query.assert_called_once()
 
 
+@pytest.mark.unit
 class TestDataTransformer:
     """Tests for DataTransformer."""
 
-    @pytest.mark.unit
     def test_transform_advertisers(self):
         """Test transforming advertiser data."""
         now = datetime.now()
@@ -302,7 +293,6 @@ class TestDataTransformer:
         
         assert result == [(1, 'Advertiser A', now, now)]
     
-    @pytest.mark.unit
     def test_transform_campaigns(self):
         """Test transforming campaign data."""
         now = datetime.now()
@@ -314,7 +304,6 @@ class TestDataTransformer:
         
         assert result == [(1, 'Campaign A', 1.5, 100.0, today, today, 1, now, now)]
     
-    @pytest.mark.unit
     def test_transform_impressions(self):
         """Test transforming impression data."""
         now = datetime.now()
@@ -330,7 +319,6 @@ class TestDataTransformer:
         assert result[0][3] == now  # event_time
         assert result[0][4] == now  # created_at
     
-    @pytest.mark.unit
     def test_transform_clicks(self):
         """Test transforming click data."""
         now = datetime.now()
@@ -347,10 +335,10 @@ class TestDataTransformer:
         assert result[0][4] == now  # created_at
 
 
+@pytest.mark.unit
 class TestDataLoader:
     """Tests for DataLoader."""
 
-    @pytest.mark.unit
     def test_load_advertisers(self, mock_ch_connector):
         """Test loading advertiser data."""
         now = datetime.now()
@@ -362,7 +350,6 @@ class TestDataLoader:
         assert count == 1
         mock_ch_connector.execute_query.assert_called_once()
     
-    @pytest.mark.unit
     def test_load_campaigns(self, mock_ch_connector):
         """Test loading campaign data."""
         now = datetime.now()
@@ -375,7 +362,6 @@ class TestDataLoader:
         assert count == 1
         mock_ch_connector.execute_query.assert_called_once()
     
-    @pytest.mark.unit
     def test_load_impressions(self, mock_ch_connector):
         """Test loading impression data."""
         now = datetime.now()
@@ -387,7 +373,6 @@ class TestDataLoader:
         assert count == 1
         mock_ch_connector.execute_query.assert_called_once()
     
-    @pytest.mark.unit
     def test_load_clicks(self, mock_ch_connector):
         """Test loading click data."""
         now = datetime.now()
@@ -399,7 +384,6 @@ class TestDataLoader:
         assert count == 1
         mock_ch_connector.execute_query.assert_called_once()
     
-    @pytest.mark.unit
     def test_load_empty_data(self, mock_ch_connector):
         """Test loading empty data."""
         loader = DataLoader(mock_ch_connector)
@@ -417,10 +401,10 @@ class TestDataLoader:
         assert count == 0
 
 
+@pytest.mark.unit
 class TestETLPipeline:
     """Tests for ETLPipeline."""
 
-    @pytest.mark.unit
     def setup_method(self):
         """Set up test environment."""
         self.mock_extractor = MagicMock(spec=DataExtractor)
@@ -433,7 +417,6 @@ class TestETLPipeline:
             self.mock_loader
         )
 
-    @pytest.mark.unit
     def test_sync_advertisers(self):
         """Test syncing advertisers."""
         now = datetime.now()
@@ -450,7 +433,6 @@ class TestETLPipeline:
         self.mock_loader.load_advertisers.assert_called_once()
         assert self.pipeline.last_sync['advertiser'] == now
 
-    @pytest.mark.unit
     def test_sync_campaigns(self):
         """Test syncing campaigns."""
         now = datetime.now()
@@ -467,7 +449,6 @@ class TestETLPipeline:
         self.mock_loader.load_campaigns.assert_called_once()
         assert self.pipeline.last_sync['campaign'] == now
 
-    @pytest.mark.unit
     def test_sync_impressions(self):
         """Test syncing impressions."""
         now = datetime.now()
@@ -483,7 +464,6 @@ class TestETLPipeline:
         self.mock_loader.load_impressions.assert_called_once()
         assert self.pipeline.last_sync['impressions'] == now
 
-    @pytest.mark.unit
     def test_sync_clicks(self):
         """Test syncing clicks."""
         now = datetime.now()
@@ -499,7 +479,6 @@ class TestETLPipeline:
         self.mock_loader.load_clicks.assert_called_once()
         assert self.pipeline.last_sync['clicks'] == now
 
-    @pytest.mark.unit
     def test_run_sync_cycle_success(self):
         """Test running a complete sync cycle successfully."""
         self.pipeline.sync_advertisers = MagicMock(return_value=1)
@@ -520,7 +499,6 @@ class TestETLPipeline:
         assert self.pipeline.sync_stats['impressions'] == 10
         assert self.pipeline.sync_stats['clicks'] == 5
 
-    @pytest.mark.unit
     def test_run_sync_cycle_failure(self):
         """Test running a sync cycle with failure."""
         self.pipeline.sync_advertisers = MagicMock(side_effect=Exception("Test error"))
@@ -530,7 +508,6 @@ class TestETLPipeline:
         assert result is False
         self.pipeline.sync_advertisers.assert_called_once()
 
-    @pytest.mark.unit
     def test_run_sync_cycle_no_updates(self):
         """Test running a sync cycle with no updates."""
         self.pipeline.sync_advertisers = MagicMock(return_value=0)

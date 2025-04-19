@@ -12,6 +12,7 @@ from etl.core.schema import SchemaManager
 from etl.core.pipeline import DataExtractor, DataTransformer, DataLoader, ETLPipeline
 
 
+@pytest.mark.integration
 class TestIntegration:
     """Integration tests for the ETL pipeline.
     
@@ -66,7 +67,6 @@ class TestIntegration:
         loader = DataLoader(ch_connector)
         return ETLPipeline(extractor, transformer, loader)
     
-    @pytest.mark.integration
     def test_schema_setup(self, schema_manager):
         """Test schema setup."""
         result = schema_manager.setup_schema()
@@ -75,7 +75,6 @@ class TestIntegration:
         result = schema_manager.create_views()
         assert result is True
     
-    @pytest.mark.integration
     def test_full_sync_cycle(self, etl_pipeline):
         """Test a full ETL sync cycle."""
         # Reset sync timestamps to get all data
@@ -93,7 +92,6 @@ class TestIntegration:
         assert isinstance(etl_pipeline.sync_stats['impressions'], int)
         assert isinstance(etl_pipeline.sync_stats['clicks'], int)
     
-    @pytest.mark.integration
     def test_incremental_sync(self, etl_pipeline):
         """Test incremental sync (no new data)."""
         # Run a second sync cycle immediately after the first
@@ -107,8 +105,6 @@ class TestIntegration:
         assert etl_pipeline.sync_stats['impressions'] == 0
         assert etl_pipeline.sync_stats['clicks'] == 0
 
-
-    @pytest.mark.integration
     def test_etl_service_main(self, app_config):
         """Test the main ETL service with run_once flag.
         
