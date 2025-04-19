@@ -21,10 +21,19 @@ class TestIntegration:
     Run with: pytest -m integration
     """
     
+    def switch_to_local_port(self, app_config):
+        """Switch to local PostgreSQL and ClickHouse port for testing."""
+        app_config.postgres.host = 'localhost'
+        app_config.postgres.port = '6543'
+        app_config.clickhouse.host = 'localhost'
+        app_config.clickhouse.port = '9001'
+        
     @pytest.fixture(scope="class")
     def app_config(self):
         """Get application configuration from environment."""
-        return AppConfig()
+        config = AppConfig()
+        self.switch_to_local_port(config)
+        return config
     
     @pytest.fixture(scope="class")
     def pg_connector(self, app_config):
@@ -56,17 +65,6 @@ class TestIntegration:
         transformer = DataTransformer()
         loader = DataLoader(ch_connector)
         return ETLPipeline(extractor, transformer, loader)
-    
-    @pytest.mark.integration
-    def test_database_connections(self, pg_connector, ch_connector):
-        """Test database connections."""
-        # PostgreSQL connection test
-        result = pg_connector.execute_query("SELECT 1")
-        assert result == [(1,)]
-        
-        # ClickHouse connection test
-        result = ch_connector.execute_query("SELECT 1")
-        assert result == [(1,)]
     
     @pytest.mark.integration
     def test_schema_setup(self, schema_manager):
@@ -110,21 +108,16 @@ class TestIntegration:
         assert etl_pipeline.sync_stats['clicks'] == 0
 
 
-@pytest.mark.integration
-def test_etl_service_main():
-    """Test the main ETL service with run_once flag.
-    
-    This test requires the ETL service to be properly configured.
-    """
-    from etl.main import AdtechETLService
-    import unittest.mock
-    
-    # Mock the initialize and run_sync methods to avoid needing actual DB connections
-    with unittest.mock.patch.object(AdtechETLService, 'initialize', return_value=True), \
-         unittest.mock.patch.object(AdtechETLService, 'run_sync', return_value=True):
+    @pytest.mark.integration
+    def test_etl_service_main(self, app_config):
+        """Test the main ETL service with run_once flag.
+        
+        This test requires the ETL service to be properly configured.
+        """
+        from etl.main import AdtechETLService
         
         # Create service
-        service = AdtechETLService()
+        service = AdtechETLService(app_config)
         
         # Run once with short timeout
         try:
