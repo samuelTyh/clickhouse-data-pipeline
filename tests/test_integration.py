@@ -110,6 +110,10 @@ class TestIntegration:
         
         This test requires the ETL service to be properly configured.
         """
+        etl_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'etl'))
+        if etl_dir not in sys.path:
+            sys.path.insert(0, etl_dir)
+
         from etl.main import AdtechETLService
         
         # Create service
