@@ -28,6 +28,7 @@ python_functions = "test_*"
 markers = [
     "unit: mark test as a unit test",
     "integration: mark test as an integration test",
+    "schema: mark test as a schema test",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
