@@ -34,8 +34,14 @@ class ClickhouseConfig:
 class ETLConfig:
     """ETL process configuration."""
     sync_interval: int = int(os.environ.get('SYNC_INTERVAL', '300'))
-    schema_path: str = os.environ.get('SCHEMA_PATH', 'clickhouse_schema/init.sql')
-    views_path: str = os.environ.get('VIEWS_PATH', 'clickhouse_schema/kpi_views.sql')
+    schema_path: str = os.path.join(
+        os.path.abspath(os.path.join(os.path.dirname(__file__), '..')),
+        os.environ.get('SCHEMA_PATH', 'clickhouse_schema/init.sql')
+    )
+    views_path: str = os.path.join(
+        os.path.abspath(os.path.join(os.path.dirname(__file__), '..')),
+        os.environ.get('VIEWS_PATH', 'clickhouse_schema/kpi_views.sql')
+    )
 
 
 class AppConfig:

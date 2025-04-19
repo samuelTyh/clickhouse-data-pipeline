@@ -8,6 +8,7 @@ dependencies = [
     "black>=25.1.0",
     "clickhouse-driver==0.2.9",
     "psycopg[binary]>=3.2.6",
+    "pytest>=8.3.5",
     "ruff>=0.11.0",
 ]
 
@@ -18,3 +19,18 @@ target-version = ["py312"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+markers = [
+    "unit: mark test as a unit test",
+    "integration: mark test as an integration test",
+    "schema: mark test as a schema test",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
