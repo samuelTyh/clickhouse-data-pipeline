@@ -41,6 +41,7 @@ This project implements a data pipeline for an advertising platform that extract
 │   ├── test_etl.py          # Unit tests module
 │   ├── test_integration.py  # Integration tests module
 │   └── test_schema.py       # Schema tests module
+├── Makefile                 # Unified control plane
 └── README.md                # Project documentation
 ```
 
@@ -127,7 +128,7 @@ The following KPIs are implemented as materialized views in ClickHouse:
 
 * [uv](https://docs.astral.sh/uv/getting-started/installation/)
 * [docker](https://docs.docker.com/engine/install/)
-* [compose](https://docs.docker.com/compose/install/)
+* [GNU Make](https://www.gnu.org/software/make/)
 
 ### Installation
 
@@ -148,7 +149,7 @@ The following KPIs are implemented as materialized views in ClickHouse:
    uv sync
    ```
 
-4. Grant scripts access
+4. Grant scripts access for local execution
    ```bash
    chmod +x scripts/*.sh
    ```
@@ -156,13 +157,13 @@ The following KPIs are implemented as materialized views in ClickHouse:
 #### Run testing
    ```bash
    # Unit tests
-   ./scripts/run_tests.sh
+   make test
 
    # Integration tests
-   ./scripts/run_tests.sh --integration
+   make test type=integration
 
    # Test schema management
-   ./scripts/run_tests.sh --schema
+   make test type=schema
    ```
 
 
@@ -171,16 +172,16 @@ The following KPIs are implemented as materialized views in ClickHouse:
 #### Control services up or down
    ```bash
    # Start services to create seed data, kick-off initialization and start ETL scheduling
-   ./scirpts/service.sh start
+   make start
 
    # Stop services and kill docker images, volumes
-   ./scripts/service.sh stop
+   make stop
 
    # Restart services
-   ./scripts/service.sh restart
+   make restart
 
    # Chechk log of service, available services are: etl, postgres, clickhouse, seeder
-   ./scripts/service.sh logs [service_name]
+   make logs [service_name]
    ```
 
 #### Accessing Databases via client
