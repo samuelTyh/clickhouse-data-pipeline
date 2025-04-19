@@ -421,7 +421,6 @@ class TestETLPipeline:
         """Test syncing advertisers."""
         now = datetime.now()
         advertiser_data = [(1, 'Advertiser A', now, now)]
-        transformed_data = [(1, 'Advertiser A', now, now)]
         
         self.mock_extractor.extract_advertisers.return_value = advertiser_data
         self.mock_loader.load_advertisers.return_value = 1
