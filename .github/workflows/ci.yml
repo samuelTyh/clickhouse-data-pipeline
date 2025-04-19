@@ -27,6 +27,7 @@ jobs:
   lint:
     name: Code Quality Checks
     needs: install
+    runs-on: ubuntu-latest
     steps:
       
       - name: Lint with ruff
@@ -35,6 +36,7 @@ jobs:
   test:
     name: Unit Tests
     needs: install
+    runs-on: ubuntu-latest
     steps:
       
       - name: Run unit tests
