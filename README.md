@@ -17,7 +17,9 @@ This project implements a data pipeline for an advertising platform that extract
 ## Project Structure
 
 ```
-├── docker-compose.yaml      # Docker services configuration
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml           # CI script
 ├── etl/                     # ETL pipeline code
 │   ├── clickhouse_schema/
 │   │   ├── init.sql         # ClickHouse schema definition
@@ -42,6 +44,7 @@ This project implements a data pipeline for an advertising platform that extract
 │   ├── test_etl.py          # Unit tests module
 │   ├── test_integration.py  # Integration tests module
 │   └── test_schema.py       # Schema tests module
+├── docker-compose.yaml      # Docker services configuration
 ├── Makefile                 # Unified control plane
 └── README.md                # Project documentation
 ```
@@ -61,6 +64,11 @@ This project implements a data pipeline for an advertising platform that extract
    - Dimension tables: dim_advertiser, dim_campaign
    - Fact tables: fact_impressions, fact_clicks
    - Materialized views for KPI calculations
+
+### Others
+- Integrates seed creation into docker-compose services
+- Implements unit tests, integration tests for etl module
+- Applies code linter and unit test in CI script
 
 ## Data Model
 
