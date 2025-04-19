@@ -5,11 +5,11 @@ import argparse
 from typing import Optional
 from datetime import datetime
 
-from core import (
+from .core import (
     AppConfig, PostgresConnector, ClickhouseConnector, SchemaManager, 
     DataExtractor, DataTransformer, DataLoader, ETLPipeline
 )
-from logging_config import configure_logging
+from .logging_config import configure_logging
 
 
 def parse_arguments():
