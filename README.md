@@ -16,25 +16,32 @@ This project implements a data pipeline for an advertising platform that extract
 ## Project Structure
 
 ```
-├── docker-compose.yaml   # Docker services configuration
-├── etl/                  # ETL pipeline code
+├── docker-compose.yaml      # Docker services configuration
+├── etl/                     # ETL pipeline code
 │   ├── clickhouse_schema/
-│   │   ├── init.sql      # ClickHouse schema definition
-│   │   └── kpi_views.sql # Materialized views for KPIs
-│   ├── core/             # Core ETL components
-│   │   ├── config.py     # Configuration management
-│   │   ├── db.py         # Database connectors
-│   │   ├── pipeline.py   # ETL pipeline implementation
-│   │   └── schema.py     # Schema management
-│   ├── logging_config.py # Logging setup
-│   ├── main.py           # Main service entry point
-│   └── requirements.txt  # Python dependencies
-├── seeder/               # Data generation utilities
-│   ├── main.py           # Seeder CLI
-│   ├── migrations/       # Database migrations
+│   │   ├── init.sql         # ClickHouse schema definition
+│   │   └── kpi_views.sql    # Materialized views for KPIs
+│   ├── core/                # Core ETL components
+│   │   ├── config.py        # Configuration management
+│   │   ├── db.py            # Database connectors
+│   │   ├── pipeline.py      # ETL pipeline implementation
+│   │   └── schema.py        # Schema management
+│   ├── logging_config.py    # Logging setup
+│   ├── main.py              # Main service entry point
+│   └── requirements.txt     # Python dependencies
+├── scripts/                 # Data generation utilities
+│   ├── run_tests.py         # Test running script
+│   └── service.sh           # Script to control docker services
+├── seeder/                  # Data generation utilities
+│   ├── main.py              # Seeder CLI
+│   ├── migrations/          # Database migrations
 │   │   └── V1__create_schema.sql
-│   └── seed.py           # Test data generation
-└── README.md             # Project documentation
+│   └── seed.py              # Test data generation
+├── tests/                   # Tests module
+│   ├── test_etl.py          # Unit tests module
+│   ├── test_integration.py  # Integration tests module
+│   └── test_schema.py       # Schema tests module
+└── README.md                # Project documentation
 ```
 
 ### Components
@@ -124,34 +131,59 @@ The following KPIs are implemented as materialized views in ClickHouse:
 
 ### Installation
 
+#### Development
 1. Clone the repository:
    ```bash
    git clone https://github.com/samuelTyh/clickhouse-data-pipeline
    cd clickhouse-data-pipeline
    ```
 
-2. Install dependencies:
+2. Install Python:
+   ```bash
+   uv python install
+   ```
+
+3. Install dependencies:
    ```bash
    uv sync
    ```
 
-3. Start all services to create seed data, kick-off initialization and start ETL scheduling:
+4. Grant scripts access
    ```bash
-   docker-compose up -d
+   chmod +x scripts/*.sh
+   ```
+
+#### Run testing
+   ```bash
+   # Unit tests
+   ./scripts/run_tests.sh
+
+   # Integration tests
+   ./scripts/run_tests.sh --integration
+
+   # Test schema management
+   ./scripts/run_tests.sh --schema
    ```
 
 
 ### Usage
 
-#### Checking ETL Status
+#### Control services up or down
+   ```bash
+   # Start services to create seed data, kick-off initialization and start ETL scheduling
+   ./scirpts/service.sh start
 
-The ETL service logs can be viewed with:
+   # Stop services and kill docker images, volumes
+   ./scripts/service.sh stop
 
-```bash
-docker logs adtech_etl
-```
+   # Restart services
+   ./scripts/service.sh restart
 
-#### Accessing Databases
+   # Chechk log of service, available services are: etl, postgres, clickhouse, seeder
+   ./scripts/service.sh logs [service_name]
+   ```
+
+#### Accessing Databases via client
 
 - **PostgreSQL**: Available at `localhost:6543` (credentials in .env.tmpl)
 - **ClickHouse**: HTTP interface at `localhost:8124`, native protocol at `localhost:9001`
