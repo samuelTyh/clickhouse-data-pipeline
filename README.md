@@ -1,4 +1,5 @@
 # AdTech Data Pipeline
+[![CI Status](https://github.com/samuelTyh/clickhouse-data-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/samuelTyh/clickhouse-data-pipeline/actions/workflows/ci.yml)
 
 ## Overview
 
