@@ -42,8 +42,9 @@ def setup_debezium_connector():
             "database.password": os.environ.get('DEBEZIUM_PG_PASSWORD'),
             "database.dbname": os.environ.get('DEBEZIUM_PG_DBNAME'),
             "database.server.name": "postgres",
+            "topic.prefix": "postgres",  # Critical parameter that was missing
             "table.include.list": "public.advertiser,public.campaign,public.impressions,public.clicks",
-            "plugin.name": "wal2json",
+            "plugin.name": "pgoutput",   # Using pgoutput instead of wal2json
             "transforms": "unwrap",
             "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
             "transforms.unwrap.drop.tombstones": "false",
