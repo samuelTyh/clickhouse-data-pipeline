@@ -114,3 +114,17 @@ celerybeat.pid
 # Environments
 .env
 .venv
+
+# Log files
+logs/
+*.log
+
+# Kafka data
+kafka-data/
+
+# Zookeeper data
+zookeeper-data/
+
+# Other temp files
+.DS_Store
+Thumbs.db
