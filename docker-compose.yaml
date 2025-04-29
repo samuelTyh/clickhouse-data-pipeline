@@ -188,6 +188,25 @@ services:
       timeout: 5s
       retries: 3
 
+  # -------------------------------------
+  # Streaming ETL Service
+  # -------------------------------------
+  stream_etl:
+    build:
+      context: ./stream_etl
+      dockerfile: Dockerfile.streametl
+    container_name: stream_etl
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      debezium:
+        condition: service_healthy
+    env_file: .env
+    volumes:
+      - ./stream_etl:/app
 
 volumes:
   postgres_data:
