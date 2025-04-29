@@ -228,7 +228,8 @@ class TestKafkaConsumerManager:
         assert consumer_manager.running is False
         assert consumer_manager.consumer_thread is None
 
-    @patch('kafka.KafkaConsumer')
+    # Properly mocked KafkaConsumer test
+    @patch('stream_etl.core.consumer.KafkaConsumer')
     def test_create_consumer(self, mock_kafka_consumer):
         """Test creating Kafka consumer."""
         bootstrap_servers = 'kafka:9092'

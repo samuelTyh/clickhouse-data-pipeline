@@ -63,7 +63,7 @@ class DataProcessor:
                 return float(value)
             except ValueError:
                 # If it looks like a decimal or numeric string with non-numeric chars
-                clean_value = re.sub(r'[^\d.-]', '', value)
+                clean_value = re.sub(r'[^\d\.\-]', '', value)  # Escape the dot and dash
                 if clean_value:
                     try:
                         return float(clean_value)
@@ -136,12 +136,12 @@ class DataProcessor:
                     continue
             
             # Try extracting and cleaning the string
-            clean_date = re.sub(r'[^\d-:T.Z+]', '', date_value)
-            if clean_date:
-                try:
+            try:
+                clean_date = re.sub(r'[^\d\-:T\.Z\+]', '', date_value)  # Escape special characters
+                if clean_date:
                     return datetime.fromisoformat(clean_date.replace('Z', '+00:00'))
-                except ValueError:
-                    pass
+            except (ValueError, re.error):
+                pass
         
         # Default to current datetime if all parsing attempts fail
         logger.warning(f"Could not parse date value: {date_value} (type: {type(date_value)}), using current time")
