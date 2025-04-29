@@ -5,70 +5,116 @@
 
 This project implements a data pipeline for an advertising platform that extracts data from PostgreSQL (operational database), transforms it, and loads it into ClickHouse (analytical database) for efficient reporting and KPI analysis.
 
+The pipeline supports both batch processing (ETL) and real-time streaming (CDC) approaches:
+1. **Batch ETL**: Runs at configurable intervals to sync data incrementally
+2. **Real-time CDC**: Uses PostgreSQL WAL (Write-Ahead Logging) and Kafka to stream changes in near real-time
+
 ## Features
 
-- **Incremental ETL**: Efficiently syncs only new or modified data
-- **Optimized Analytics Schema**: ClickHouse schema designed for high-performance analytical queries
-- **Real-time KPIs**: Pre-calculated metrics using materialized views
-- **Containerized Architecture**: Easy deployment with Docker
-- **Configurable**: Customizable sync intervals and parameters
+- **Dual Pipeline Approach**:
+  - Batch ETL for reliability and consistency
+  - Streaming CDC for real-time analytics
+  
+- **PostgreSQL Change Data Capture**:
+  - Uses native PostgreSQL logical replication (pgoutput)
+  - Captures database changes as they happen
+  - Minimal impact on source database performance
 
+- **Kafka-based Streaming Architecture**:
+  - Reliable message delivery and fault tolerance
+  - Decouples source and target systems
+  - Enables parallel processing of events
+  
+- **ClickHouse Analytics**:
+  - Optimized schema for high-performance analytical queries
+  - Pre-calculated metrics using materialized views
+  - Designed for efficient ad-hoc reporting
+
+- **Containerized Architecture**:
+  - Easy deployment with Docker Compose
+  - Scalable and reproducible setup
+  - Isolated components with clear boundaries
+
+- **Comprehensive Testing**:
+  - Unit tests for all components
+  - Integration tests for end-to-end validation
+  - CI pipeline for quality assurance
 
 ## Project Structure
 
 ```
 ├── .github/
 │   ├── workflows/
-│   │   ├── ci.yml           # CI script
-├── etl/                     # ETL pipeline code
+│   │   └── ci.yml             # CI script
+├── etl/                       # Batch ETL pipeline code
 │   ├── clickhouse_schema/
-│   │   ├── init.sql         # ClickHouse schema definition
-│   │   └── kpi_views.sql    # Materialized views for KPIs
-│   ├── core/                # Core ETL components
-│   │   ├── config.py        # Configuration management
-│   │   ├── db.py            # Database connectors
-│   │   ├── pipeline.py      # ETL pipeline implementation
-│   │   └── schema.py        # Schema management
-│   ├── logging_config.py    # Logging setup
-│   ├── main.py              # Main service entry point
-│   └── requirements.txt     # Python dependencies
-├── scripts/                 # Data generation utilities
-│   ├── run_tests.py         # Test running script
-│   └── service.sh           # Script to control docker services
-├── seeder/                  # Data generation utilities
-│   ├── main.py              # Seeder CLI
-│   ├── migrations/          # Database migrations
+│   │   ├── init.sql           # ClickHouse schema definition
+│   │   └── kpi_views.sql      # Materialized views for KPIs
+│   ├── core/                  # Core ETL components
+│   │   ├── config.py          # Configuration management
+│   │   ├── db.py              # Database connectors
+│   │   ├── pipeline.py        # ETL pipeline implementation
+│   │   └── schema.py          # Schema management
+│   ├── Dockerfile.etl         # Docker build definition
+│   ├── logging_config.py      # Logging setup
+│   ├── main.py                # Main service entry point
+│   └── requirements.txt       # Python dependencies
+├── scripts/                   # Utility scripts
+│   ├── run_tests.sh           # Test running script
+│   └── service.sh             # Script to control docker services
+├── seeder/                    # Data generation utilities
+│   ├── main.py                # Seeder CLI
+│   ├── migrations/            # Database migrations
 │   │   └── V1__create_schema.sql
-│   └── seed.py              # Test data generation
-├── tests/                   # Tests module
-│   ├── test_etl.py          # Unit tests module
-│   ├── test_integration.py  # Integration tests module
-│   └── test_schema.py       # Schema tests module
-├── docker-compose.yaml      # Docker services configuration
-├── Makefile                 # Unified control plane
-└── README.md                # Project documentation
+│   └── seed.py                # Test data generation
+├── stream_etl/                # Streaming ETL pipeline code
+│   ├── core/                  # Core streaming components
+│   │   ├── config.py          # Configuration management
+│   │   ├── consumer.py        # Kafka consumer implementation
+│   │   └── processor.py       # Data processor implementation
+│   ├── utils/                 # Utility modules
+│   │   └── logging_config.py  # Logging setup
+│   ├── Dockerfile             # Docker build definition
+│   ├── main.py                # Main streaming service entry point
+│   └── requirements.txt       # Python dependencies
+├── tests/                     # Tests module
+│   ├── test_etl.py            # Unit tests for batch ETL
+│   ├── test_stream_etl.py     # Unit tests for streaming ETL
+│   ├── test_integration.py    # Integration tests
+│   └── test_schema.py         # Schema tests
+├── .env.tmpl                  # Environment variables template
+├── docker-compose.yaml        # Docker services configuration
+├── Makefile                   # Unified control plane
+└── README.md                  # Project documentation
 ```
 
 ### Components
 
 1. **Source Database (PostgreSQL)**
    - Contains operational data for the advertising platform
+   - Configured with logical replication for Change Data Capture (CDC)
    - Tables: advertiser, campaign, impressions, clicks
 
-2. **ETL Pipeline**
+2. **Batch ETL Pipeline**
    - Extracts data from PostgreSQL using incremental updates
    - Transforms data for analytical use
    - Loads data into ClickHouse dimensional model
+   - Runs at configurable intervals (default: 5 minutes)
 
-3. **Analytical Database (ClickHouse)**
+3. **Streaming ETL Pipeline**
+   - Captures database changes in real-time using PostgreSQL pgoutput
+   - Uses Debezium for CDC integration with PostgreSQL
+   - Processes changes and loads them into ClickHouse in near real-time
+
+4. **Message Queue (Kafka)**
+   - Acts as a buffer between PostgreSQL and ClickHouse
+   - Enables decoupling and resilience in the pipeline
+   - Managed by Zookeeper for coordination
+
+5. **Analytical Database (ClickHouse)**
    - Dimension tables: dim_advertiser, dim_campaign
    - Fact tables: fact_impressions, fact_clicks
    - Materialized views for KPI calculations
-
-### Others
-- Integrates seed creation into docker-compose services
-- Implements unit tests, integration tests for etl module
-- Applies code linter and unit test in CI script
 
 ## Data Model
 
@@ -137,6 +183,7 @@ The following KPIs are implemented as materialized views in ClickHouse:
 
 * [uv](https://docs.astral.sh/uv/getting-started/installation/)
 * [docker](https://docs.docker.com/engine/install/)
+* [docker-compose](https://docs.docker.com/compose/install/)
 * [GNU Make](https://www.gnu.org/software/make/)
 
 ### Installation
@@ -148,19 +195,19 @@ The following KPIs are implemented as materialized views in ClickHouse:
    cd clickhouse-data-pipeline
    ```
 
-2. Install Python:
-   ```bash
-   uv python install
-   ```
-
-3. Install dependencies:
+2. Install Python dependencies:
    ```bash
    uv sync
    ```
 
-4. Grant scripts access for local execution
+3. Grant scripts access for local execution:
    ```bash
    chmod +x scripts/*.sh
+   ```
+
+4. Start the services with Docker Compose:
+   ```bash
+   make start
    ```
 
 #### Run testing
@@ -173,14 +220,16 @@ The following KPIs are implemented as materialized views in ClickHouse:
 
    # Test schema management
    make test type=schema
+   
+   # Test streaming ETL
+   make test type=streaming
    ```
-
 
 ### Usage
 
-#### Control services up or down
+#### Service Management
    ```bash
-   # Start services to create seed data, kick-off initialization and start ETL scheduling
+   # Start services including Kafka, Zookeeper, and Debezium for CDC
    make start
 
    # Stop services and kill docker images, volumes
@@ -189,20 +238,30 @@ The following KPIs are implemented as materialized views in ClickHouse:
    # Restart services
    make restart
 
-   # Chechk log of service, available services are: etl, postgres, clickhouse, seeder
-   make logs [service_name]
+   # Check status of services
+   make status
+
+   # Check log of a specific service
+   # Available services are: etl, stream_etl, postgres, clickhouse, 
+   # kafka, zookeeper, debezium, seeder
+   make logs service=stream_etl
+   
+   # Check Kafka and Debezium status
+   ./scripts/service.sh streaming_status
    ```
 
-#### Accessing Databases via client
+#### Accessing Resources
 
 - **PostgreSQL**: Available at `localhost:6543` (credentials in .env.tmpl)
 - **ClickHouse**: HTTP interface at `localhost:8124`, native protocol at `localhost:9001`
+- **Kafka**: Available at `localhost:9092`
+- **Debezium Connect**: REST API at `localhost:8083/connectors`
 
-## Running Queries
+## Example Queries
 
-### Example ClickHouse Queries
+### ClickHouse Queries
 
-#### Campaign Performance
+#### Campaign Performance Overview
 
 ```sql
 SELECT 
@@ -216,7 +275,7 @@ FROM analytics.mv_campaign_ctr
 ORDER BY ctr DESC;
 ```
 
-#### Daily Performance
+#### Daily Performance Trend
 
 ```sql
 SELECT 
@@ -228,7 +287,7 @@ FROM analytics.mv_daily_performance
 ORDER BY event_date DESC;
 ```
 
-#### Campaign Cost Analysis
+#### Cost Per Click Analysis
 
 ```sql
 SELECT 
@@ -242,33 +301,104 @@ FROM analytics.mv_campaign_efficiency
 ORDER BY cost_per_click ASC;
 ```
 
+#### Advertiser Summary
+
+```sql
+SELECT
+    advertiser_id,
+    advertiser_name,
+    campaign_count,
+    total_budget,
+    impressions,
+    clicks,
+    overall_ctr
+FROM analytics.mv_advertiser_performance
+ORDER BY overall_ctr DESC;
+```
+
+## Change Data Capture (CDC) Setup
+
+The project uses PostgreSQL's logical replication with pgoutput to implement CDC:
+
+1. **PostgreSQL Configuration**:
+   - `wal_level = logical`: Enables logical decoding of the WAL
+   - `max_wal_senders = 10`: Allows multiple clients to connect to WAL
+   - `max_replication_slots = 10`: Supports multiple replication slots
+
+2. **Debezium Connector Setup**:
+   - Creates a PostgreSQL publication for target tables
+   - Establishes a replication slot named 'debezium'
+   - Configures Debezium to use the pgoutput plugin
+   - Sets `decimal.handling.mode = string` for proper numeric handling
+
+3. **Kafka Topic Structure**:
+   - Each table has its own Kafka topic: 
+     - `postgres.public.advertiser`
+     - `postgres.public.campaign`
+     - `postgres.public.impressions`
+     - `postgres.public.clicks`
+
+4. **Stream Processing**:
+   - Stream ETL service consumes messages from Kafka topics
+   - Processes messages based on operation type (create, update, delete)
+   - Loads data into ClickHouse in near real-time
 
 ## Design Decisions
 
+### Dual Pipeline Approach
+
+1. **Batch ETL** provides:
+   - Reliability and consistency
+   - Historical data loading capabilities
+   - Resilience against temporary failures
+
+2. **Streaming CDC** provides:
+   - Near real-time analytics
+   - Lower latency for time-sensitive metrics
+   - Reduced load on source database
+
+### PostgreSQL CDC Configuration
+
+1. **Native pgoutput Plugin**:
+   - Built into PostgreSQL 10+
+   - No external plugins required
+   - Official PostgreSQL feature with long-term support
+
+2. **Replication Slots**:
+   - Ensures no changes are lost if the consumer is down
+   - Maintains position in WAL for resuming
+   - Provides durability guarantees
+
+### Kafka as Message Broker
+
+1. **Decoupling**:
+   - Source and target systems operate independently
+   - Changes in one system don't impact the other
+   - Allows for independent scaling
+
+2. **Reliability**:
+   - Persistent message storage
+   - Exactly-once delivery semantics
+   - Built-in partitioning and replication
+
+3. **Scalability**:
+   - Handles high-volume data streams
+   - Supports multiple consumers
+   - Allows for parallel processing
+
 ### ClickHouse Schema Design
 
-1. **ReplacingMergeTree for Dimensions**
-   - Handles updates to dimension data efficiently
+1. **ReplacingMergeTree for Dimensions**:
+   - Efficiently handles updates to dimension data
    - Maintains history with timestamp versioning
+   - Performs well for analytical queries
 
-2. **MergeTree with Partitioning for Facts**
-   - Partitioned by month for efficient querying and data management
-   - Optimized for analytical workloads
+2. **MergeTree with Partitioning for Facts**:
+   - Partitioning by month for efficient querying
+   - Optimized for append-heavy workloads
+   - Good performance for time-series data
 
-3. **Materialized Views for KPIs**
+3. **Materialized Views for KPIs**:
    - Pre-calculation of common metrics
    - Significantly faster query response times
-
-### ETL Process
-
-1. **Incremental Updates**
-   - Tracks last sync timestamps for each table
-   - Only extracts new or modified data since last sync
-
-2. **Error Handling**
-   - Comprehensive logging
-   - Graceful recovery from failures
-
-3. **Modular Design**
-   - Separation of extract, transform, and load responsibilities
-   - Easy to extend with new data sources or targets
+   - Updates automatically as new data arrives
