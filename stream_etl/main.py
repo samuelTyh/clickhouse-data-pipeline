@@ -42,9 +42,13 @@ def setup_debezium_connector():
             "database.password": os.environ.get('DEBEZIUM_PG_PASSWORD'),
             "database.dbname": os.environ.get('DEBEZIUM_PG_DBNAME'),
             "database.server.name": "postgres",
-            "topic.prefix": "postgres",  # Critical parameter that was missing
+            "topic.prefix": "postgres",
             "table.include.list": "public.advertiser,public.campaign,public.impressions,public.clicks",
-            "plugin.name": "pgoutput",   # Using pgoutput instead of wal2json
+            "plugin.name": "pgoutput",
+            # Data type handling
+            "decimal.handling.mode": "string",  # Convert DECIMAL/NUMERIC values to strings
+            "time.precision.mode": "connect",   # Proper time precision handling
+            
             "transforms": "unwrap",
             "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
             "transforms.unwrap.drop.tombstones": "false",
