@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Import stream ETL modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../stream_etl')))
-from stream_etl.core.config import AppConfig, PostgresConfig, ClickhouseConfig, KafkaConfig
+from stream_etl.core.config import AppConfig
 from stream_etl.core.processor import DataProcessor
 from stream_etl.core.consumer import KafkaConsumerManager
 

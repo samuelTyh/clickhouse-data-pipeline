@@ -2,7 +2,7 @@ import json
 import logging
 import threading
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from kafka import KafkaConsumer
 from .processor import DataProcessor
 

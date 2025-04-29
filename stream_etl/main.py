@@ -106,7 +106,7 @@ def wait_for_services():
             kafka_ready = True
             admin_client.close()
             logger.info("Kafka is available")
-        except Exception as e:
+        except Exception:
             logger.warning(f"Waiting for Kafka to be available... ({retries}/{max_retries})")
             retries += 1
             time.sleep(10)
@@ -127,7 +127,7 @@ def wait_for_services():
                 logger.info("Debezium Connect is available")
             else:
                 raise Exception(f"Debezium responded with status code {response.status_code}")
-        except Exception as e:
+        except Exception:
             logger.warning(f"Waiting for Debezium Connect to be available... ({retries}/{max_retries})")
             retries += 1
             time.sleep(10)

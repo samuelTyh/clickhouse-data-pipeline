@@ -1,11 +1,7 @@
 import logging
 from datetime import datetime, date
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Union
 import clickhouse_driver
-import psycopg
-import time
-import base64
-import struct
 import re
 from .config import AppConfig
 
@@ -65,10 +61,7 @@ class DataProcessor:
                 # If it looks like a decimal or numeric string with non-numeric chars
                 clean_value = re.sub(r'[^\d\.\-]', '', value)  # Escape the dot and dash
                 if clean_value:
-                    try:
-                        return float(clean_value)
-                    except:
-                        pass
+                    return float(clean_value)
         
         # Default to 1.0 if parsing fails - a reasonable value that won't break things
         logger.warning(f"Could not parse numeric value: {value}, using 1.0")
