@@ -33,16 +33,27 @@ function check_service_log() {
     if [ -z "$1" ]; then
         echo "Please provide a service name to check logs."
         echo "Usage: $0 logs <service_name>, available services are:"
-        echo "etl, postgres, clickhouse, seeder"
+        echo "etl, stream_etl, postgres, clickhouse, kafka, zookeeper, debezium, seeder"
         exit 1
     fi
     echo "Checking logs for service: $1"
     docker-compose -f $DOCKER_COMPOSE_FILE logs "$1"
 }
 
+function check_streaming_status() {
+    echo "Checking Debezium connectors status..."
+    curl -s http://localhost:8083/connectors | jq
+    
+    echo -e "\nChecking Kafka topics..."
+    docker-compose exec kafka kafka-topics.sh --bootstrap-server kafka:9092 --list
+    
+    echo -e "\nChecking Kafka consumer groups..."
+    docker-compose exec kafka kafka-consumer-groups.sh --bootstrap-server kafka:9092 --list
+}
+
 # Check for the command argument
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 start|stop|restart|status|logs [service_name]"
+    echo "Usage: $0 start|stop|restart|status|logs [service_name]|streaming_status"
     exit 1
 fi
 
@@ -63,8 +74,11 @@ case $1 in
     logs)
         check_service_log "$2"
         ;;
+    streaming_status)
+        check_streaming_status
+        ;;
     *)
-        echo "Invalid command. Usage: $0 start|stop|restart|status|logs [service_name]"
+        echo "Invalid command. Usage: $0 start|stop|restart|status|logs [service_name]|streaming_status"
         exit 1
         ;;
 esac
