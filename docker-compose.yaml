@@ -69,7 +69,7 @@ services:
       FLYWAY_CONNECT_RETRIES: 10
 
   # -------------------------------------
-  # Data Seeder
+  # Initial Data Seeder (one-time)
   # -------------------------------------
   seeder:
     build:
@@ -83,6 +83,25 @@ services:
         restart: true
       flyway:
         condition: service_completed_successfully
+
+  # -------------------------------------
+  # Periodic Data Seeder (continuous)
+  # -------------------------------------
+  periodic_seeder:
+    build:
+      context: ./seeder
+      dockerfile: Dockerfile.periodic_seeder
+    container_name: periodic_data_seeder
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      flyway:
+        condition: service_completed_successfully
+    volumes:
+      - ./seeder:/app
 
   # -------------------------------------
   # ETL Service

@@ -3,7 +3,7 @@ SERVICE_SCRIPT = ./scripts/service.sh
 TEST_SCRIPT = ./scripts/run_tests.sh
 
 # Targets
-.PHONY: start stop restart status logs test
+.PHONY: start stop restart status logs test seeder-start seeder-stop seeder-stats
 
 # Docker Compose Service Management
 start:
@@ -34,3 +34,13 @@ test:
         echo "Running $(type) tests..."; \
         $(TEST_SCRIPT) --$$(echo $(type)); \
     fi
+
+# Periodic Seeder Management
+seeder-start:
+	@$(SERVICE_SCRIPT) seeder_start
+
+seeder-stop:
+	@$(SERVICE_SCRIPT) seeder_stop
+
+seeder-stats:
+	@$(SERVICE_SCRIPT) seeder_stats
